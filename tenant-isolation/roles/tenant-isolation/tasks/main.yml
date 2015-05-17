@@ -1,0 +1,43 @@
+---
+- name: Create new tenant
+  command: keystone --os-username={{ OS_USERNAME }} --os-password={{ OS_PASSWORD }} --os-tenant-name={{ OS_TENANT_NAME }} --os-auth-url={{ OS_AUTH_URL }}
+           tenant-create --name={{ TENANT_NAME }} --description="{{ TENANT_DESC }}"
+
+- name: Get new tenant ID
+  shell: keystone --os-username={{ OS_USERNAME }} --os-password={{ OS_PASSWORD }} --os-tenant-name={{ OS_TENANT_NAME }} --os-auth-url={{ OS_AUTH_URL }}
+         tenant-list | awk '/ {{ TENANT_NAME }} / {print $2}'
+  register: tent1
+
+- name: Create new aggregate for new tenant
+  command: nova --os-username={{ OS_USERNAME }} --os-password={{ OS_PASSWORD }} --os-tenant-name={{ OS_TENANT_NAME }} --os-auth-url={{ OS_AUTH_URL }}
+           aggregate-create {{ TENANT_NAME }}
+
+- name: Get new aggregate ID
+  shell: nova --os-username={{ OS_USERNAME }} --os-password={{ OS_PASSWORD }} --os-tenant-name={{ OS_TENANT_NAME }} --os-auth-url={{ OS_AUTH_URL }}
+         aggregate-list | awk '/ {{ TENANT_NAME }} / {print $2}'
+  register: aggre1
+
+- name: Add US hosts to aggregate, one command for each host using the ID from the aggregate just created
+  command: nova --os-username={{ OS_USERNAME }} --os-password={{ OS_PASSWORD }} --os-tenant-name={{ OS_TENANT_NAME }} --os-auth-url={{ OS_AUTH_URL }}
+           aggregate-add-host {{ aggre1.stdout }} {{ item.name }}
+  with_items: compute
+
+- name: Update aggregate metadata to include tenant ID filter
+  command: nova --os-username={{ OS_USERNAME }} --os-password={{ OS_PASSWORD }} --os-tenant-name={{ OS_TENANT_NAME }} --os-auth-url={{ OS_AUTH_URL }}
+           aggregate-set-metadata {{ aggre1.stdout }} filter_tenant_id={{ tent1.stdout }}
+
+- name: Create custom flavor for host aggregate
+  command: nova --os-username={{ OS_USERNAME }} --os-password={{ OS_PASSWORD }} --os-tenant-name={{ OS_TENANT_NAME }} --os-auth-url={{ OS_AUTH_URL }}
+           flavor-create {{ FLAVOR_NAME }} auto {{ FLAVOR_RAM }} {{ FLAVOR_DISK }} {{ FLAVOR_CPU }}
+
+- name: Add flavor key to new flavor
+  command: nova --os-username={{ OS_USERNAME }} --os-password={{ OS_PASSWORD }} --os-tenant-name={{ OS_TENANT_NAME }} --os-auth-url={{ OS_AUTH_URL }}
+           flavor-key {{ FLAVOR_NAME }} set filter_tenant_id={{ tent1.stdout }}
+
+- name: Update default tenant quota to allow US NetApp availability
+  command: cinder --os-username={{ OS_USERNAME }} --os-password={{ OS_PASSWORD }} --os-tenant-name={{ OS_TENANT_NAME }} --os-auth-url={{ OS_AUTH_URL }}
+           quota-update --volumes 100 --volume-type {{ ALLOW_VOL_TYPE }} {{ tent1.stdout }}
+  
+- name: Update default tenant quota to restrict UK NetApp availability
+  command: cinder --os-username={{ OS_USERNAME }} --os-password={{ OS_PASSWORD }} --os-tenant-name={{ OS_TENANT_NAME }} --os-auth-url={{ OS_AUTH_URL }}
+           quota-update --volumes 0 --volume-type {{ RESTRICT_VOL_TYPE }} {{ tent1.stdout }}

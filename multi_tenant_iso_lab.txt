@@ -1,0 +1,98 @@
+# Connect to the utility container
+ssh 172.29.236.225 -l root
+
+# Use the 'admin' credentials
+source ~/openrc
+
+# Define your Tenant name
+TNAME=`keystone tenant-list | awk '/ <your tenant name> / { print $4 }'`
+
+# Define the other groups Tenant name
+OTNAME=`keystone tenant-list | awk '/ <other groups tenant name> / { print $4 }'`
+
+# Create Cinder volume types
+cinder type-create $TNAME'_US'
+cinder type-create $TNAME'_UK'
+
+# Link volume-types to back-end name
+cinder type-key $TNAME'_US' set volume_backend_name=LVM_iSCSI
+cinder type-key $TNAME'_UK' set volume_backend_name=LVM_iSCSI_2
+
+# Save your tenant ID to the MY_TENANT_ID variable
+MY_TENANT_ID=`keystone tenant-list | awk '/ <your tenant name> / { print $2 }'`
+OTHER_TENANT_ID=`keystone tenant-list | awk '/ <other groups tenant name> / { print $2 }'`
+
+# Create US_Zone host aggregate
+nova aggregate-create $TNAME'_US_Zone'
+US_ZONE=`nova aggregate-list | awk '/ $TNAME'_US_Zone' / { print $2 }'`
+
+# Create UK_Zone host aggregate
+nova aggregate-create $TNAME'_UK_Zone'
+UK_ZONE=`nova aggregate-list | awk '/ $TNAME'_UK_Zone' / { print $2 }'`
+
+# Discover hypervisor names
+nova hypervisor-list
+
+# Add hosts to aggregates
+nova aggregate-add-host $TNAME'_US_Zone' 021579-compute01
+nova aggregate-add-host $TNAME'_US_Zone' 021579-compute02
+nova aggregate-add-host $TNAME'_UK_Zone' 021579-compute03
+nova aggregate-add-host $TNAME'_UK_Zone' 021579-compute04
+
+# Update host aggregates with metadata to include tenant ID filter
+nova aggregate-set-metadata $TNAME'_US_Zone' filter_tenant_id=$MY_TENANT_ID
+nova aggregate-set-metadata $TNAME'_UK_Zone' filter_tenant_id=$OTHER_TENANT_ID
+
+# Create customer flavor for US host aggregate
+nova flavor-create US auto 2048 10 1
+nova flavor-key US set filter_tenant_id=$MY_TENANT_ID
+
+# Create customer flavor for UK host aggregate
+nova flavor-create UK auto 2048 10 1
+nova flavor-key UK set filter_tenant_id=$OTHER_TENANT_ID
+
+# Update default tenant quota to allow and restrict block storage availability
+
+# To allow access to the US volume type from your tenant and restrict access to other volume type
+cinder quota-update --volumes 10 --volume-type $TNAME'_US' $MY_TENANT_ID
+cinder quota-update --volumes 0 --volume-type $TNAME'_UK' $MY_TENANT_ID
+
+# To allow access to the UK volume type from your tenant and restrict access to other volume type
+cinder quota-update --volumes 10 --volume-type $TNAME'_UK' $OTHER_TENANT_ID
+cinder quota-update --volumes 0 --volume-type $TNAME'_US' $OTHER_TENANT_ID
+
+# Exit out of the utility container
+exit
+
+# Use your student credentials
+source ~/openrc-<your tenant name>
+
+# Define your Tenant name
+TNAME=`keystone tenant-list | awk '/ <your tenant name> / { print $4 }'`
+
+# Boot an instance within the US_Zone host aggregate
+nova boot --image cirros-0.3.3 --flavor m1.small --availability-zone $TNAME'_US_Zone' myfirstinstance
+
+# List instances, notice status of instance
+nova list
+
+# Boot an instance within the UK_Zone host aggregate
+nova boot --image cirros-0.3.3 --flavor m1.small --availability-zone $TNAME'_UK_Zone' mysecondinstance
+
+# List instances, notice status of instance
+nova list
+
+# Create a new volume using the US volume type
+cinder create 5 --volume-type $TNAME'_US' --display-name $TNAME'_FirstVolume'
+
+# List volumes, notice status of volume
+cinder list
+
+# Create a new volume using the UK volume type
+cinder create 5 --volume-type $TNAME'_UK' --display-name $TNAME'_SecondVolume'
+
+# List volumes, notice status of volume
+cinder list
+
+# Close connection to the OpenStack cloud
+exit

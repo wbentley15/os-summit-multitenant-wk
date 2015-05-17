@@ -1,0 +1,12 @@
+---
+compute:
+  - name: compute001
+  - name: compute002
+  - name: compute003
+  
+ALLOW_VOL_TYPE: vol_type1
+RESTRICT_VOL_TYPE: vol_type2
+FLAVOR_NAME:
+FLAVOR_RAM:
+FLAVOR_DISK:
+FLAVOR_CPU:

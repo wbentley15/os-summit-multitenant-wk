@@ -1,0 +1,8 @@
+# Here are variables related to the install
+
+OS_USERNAME: test-admin
+OS_PASSWORD: passwd
+OS_TENANT_NAME: TEST
+OS_AUTH_URL: http://172.29.236.7:35357/v2.0
+TENANT_NAME: TEST-corp
+TENANT_DESC: Test Corporate
