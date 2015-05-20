@@ -24,11 +24,11 @@ OTHER_TENANT_ID=`keystone tenant-list | awk '/ <other groups tenant name> / { pr
 
 # Create US_Zone host aggregate
 nova aggregate-create $TNAME'_US_Zone'
-US_ZONE=`nova aggregate-list | awk '/ $TNAME'_US_Zone' / { print $2 }'`
+US_ZONE=`nova aggregate-list | awk '/ <US aggregate name> / { print $2 }'`
 
 # Create UK_Zone host aggregate
 nova aggregate-create $TNAME'_UK_Zone'
-UK_ZONE=`nova aggregate-list | awk '/ $TNAME'_UK_Zone' / { print $2 }'`
+UK_ZONE=`nova aggregate-list | awk '/ <UK aggregate name> / { print $2 }'`
 
 # Discover hypervisor names
 nova hypervisor-list
