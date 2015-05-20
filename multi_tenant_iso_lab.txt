@@ -71,13 +71,13 @@ source ~/openrc-<your tenant name>
 TNAME=`keystone tenant-list | awk '/ <your tenant name> / { print $4 }'`
 
 # Boot an instance within the US_Zone host aggregate
-nova boot --image cirros-0.3.3 --flavor m1.small --availability-zone $TNAME'_US_Zone' myfirstinstance
+nova boot --image cirros-0.3.3 --flavor $TNAME'_US' myfirstinstance
 
 # List instances, notice status of instance
 nova list
 
 # Boot an instance within the UK_Zone host aggregate
-nova boot --image cirros-0.3.3 --flavor m1.small --availability-zone $TNAME'_UK_Zone' mysecondinstance
+nova boot --image cirros-0.3.3 --flavor $TNAME'_UK' mysecondinstance
 
 # List instances, notice status of instance
 nova list
