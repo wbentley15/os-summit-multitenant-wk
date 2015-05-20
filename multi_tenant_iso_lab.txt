@@ -44,12 +44,12 @@ nova aggregate-set-metadata $TNAME'_US_Zone' filter_tenant_id=$MY_TENANT_ID
 nova aggregate-set-metadata $TNAME'_UK_Zone' filter_tenant_id=$OTHER_TENANT_ID
 
 # Create customer flavor for US host aggregate
-nova flavor-create US auto 2048 10 1
-nova flavor-key US set filter_tenant_id=$MY_TENANT_ID
+nova flavor-create $TNAME'_US' auto 2048 10 1
+nova flavor-key $TNAME'_US' set filter_tenant_id=$MY_TENANT_ID
 
 # Create customer flavor for UK host aggregate
-nova flavor-create UK auto 2048 10 1
-nova flavor-key UK set filter_tenant_id=$OTHER_TENANT_ID
+nova flavor-create $TNAME'_UK' auto 2048 10 1
+nova flavor-key $TNAME'_UK' set filter_tenant_id=$OTHER_TENANT_ID
 
 # Update default tenant quota to allow and restrict block storage availability
 
